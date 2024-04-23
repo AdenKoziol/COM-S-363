@@ -1,0 +1,71 @@
+//Q1
+MATCH (u:User)-[:posted]->(t:Tweet)
+RETURN t.retweet_count AS retweet_count, t.textbody AS tweet_text, u.screen_name AS user_screen_name, u.category AS user_category, u.sub_category AS user_sub_category
+ORDER BY retweet_count DESC
+LIMIT 10;
+
+//Q2
+MATCH (u:User)-[:posted]->(t:Tweet)-[:has_tag]->(tag:Hashtag)
+WHERE u.ofstate <> 'na'
+WITH toLower(tag.hastagname) AS hashtag_lowercase, COLLECT(DISTINCT u.ofstate) AS states
+RETURN hashtag_lowercase AS hashtag, SIZE(states) AS num_states, REDUCE(s='', state IN states | s + state + ',') AS states_list
+ORDER BY num_states DESC
+LIMIT 10;
+
+//Q3
+MATCH (u:User)-[:posted]->(t:Tweet)-[:has_tag]->(tag:Hashtag)
+WHERE toLower(tag.hastagname) IN ['iowacaucus', 'iacaucus']
+WITH DISTINCT u.screen_name AS screen_name, u.ofstate AS state, u.numFollowers AS followers
+RETURN screen_name, state
+ORDER BY followers DESC;
+
+//Q4 GOP
+MATCH (u:User {sub_category: 'GOP'})
+RETURN u.screen_name AS screen_name, 'GOP' AS party, u.numFollowers AS followers
+ORDER BY followers DESC
+LIMIT 5;
+//Q4 Democrat
+MATCH (u:User {sub_category: 'democrat'})
+RETURN u.screen_name AS screen_name, 'Democrat' AS party, u.numFollowers AS followers
+ORDER BY followers DESC
+LIMIT 5;
+
+//Q5
+MATCH (u:User {ofstate: 'Iowa'})-[:posted]->(t:Tweet)-[:has_tag]->(tag:Hashtag)
+WHERE t.posted.year = 2016 AND t.posted.month = 1
+WITH tag, COUNT(DISTINCT t) AS tweet_count
+WITH toLower(tag.hastagname) AS hashtag_lowercase, tweet_count
+RETURN hashtag_lowercase AS hashtag, SUM(tweet_count) AS total_tweet_count
+ORDER BY total_tweet_count DESC;
+
+//Q6
+MATCH (t:Tweet)-[:has_tag]->(h:HashTag {hastagname: "Iowa"}),
+      (u:User)-[:posted]->(t)
+WHERE t.posted.year = 2016 AND t.posted.month = 2
+      AND (u.sub_category = 'GOP' OR u.sub_category = 'democrat')
+RETURN t.textbody AS tweet_text,
+       h.hastagname AS hashtag,
+       u.screen_name AS user_screen_name,
+       u.sub_category AS sub_category;
+
+//Q7 
+MATCH (u:User)-[:posted]->(t:Tweet)-[:has_url]->(url:URL)
+WHERE u.sub_category = 'GOP' AND t.posted.year = 2016 AND t.posted.month = 1
+RETURN u.screen_name AS user_screen_name, COUNT(t) AS tweet_count, COLLECT(DISTINCT url.url) AS urls
+ORDER BY tweet_count DESC;
+
+//Q8
+MATCH (u:User)<-[:mentioned]-(t:Tweet)
+WITH u, COUNT(DISTINCT t.posting_user) AS mention_count, COUNT(t) AS mentions
+RETURN u.screen_name AS mentioned_user_screen_name, u.numFollowers AS followers_count, mention_count
+ORDER BY mentions DESC
+LIMIT 10;
+
+//Q9
+MATCH (u:User)-[:posted]->(t:Tweet)-[:has_url]->(url:URL)
+WHERE u.sub_category = 'GOP' AND t.posted.year = 2016 AND t.posted.month IN [1, 2, 3]
+WITH toLower(url.url) AS url, COUNT(t) AS tweet_count
+RETURN url, SUM(tweet_count) AS total_tweet_count
+ORDER BY total_tweet_count DESC
+LIMIT 10;
+
